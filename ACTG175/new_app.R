@@ -23,7 +23,8 @@ B = 200
 r = c(-Inf,1/30,1/15,1/10,1/5,0.5)
 n_r = length(r)
 rep = 500
-level = 0.05 
+# level = 0.05 
+level = 0.2
 e = 10000
 
 
@@ -152,19 +153,54 @@ D <- D[, !colnames(D) %in% c("race")]
 
 D = as.matrix(D)
 
-# star_time <- Sys.time() 
-# tmp = fun_linear_regression(D,Y,B,level,e,r,BS_true,k_par)
-# best_subgroup = tmp$best_subgroup
-# l_naive = tmp$nonpri_naive
-# result <-  foreach(mc = 1:100, .combine = cbind,.packages = c("dplyr","MASS","rmutil","epiDisplay","tmvtnorm","matrixcalc","corpcor")) %dopar% {
-#     unname(fun_linear_regression_parallel(D,Y,B,level,e,r,BS_true,k_par))
-# }
-# parallel_result = rowMeans(result)
-# final_result = c(parallel_result,l_naive,best_subgroup)
-# final_result
+star_time <- Sys.time() 
+tmp = fun_linear_regression(D,Y,B,level,e,r,BS_true,k_par)
+best_subgroup = tmp$best_subgroup
+l_naive = tmp$nonpri_naive
+k_fold = 3
 
-# write.csv(result,file = "result/race_age_wtkg.csv")
-# end_time <- Sys.time() 
-# run_time <- end_time - star_time  ## 计算程序运行时间
-# print("Time for the 100 epoch:")
-# print(run_time)
+######## test
+# n = dim(D)[1]
+# class_indices = index_sample(n,k_fold)
+# h_ji_matrix <- matrix(nrow = k_par, ncol = n_r) # (k_par,n_r)
+# h_ji_whl_matrix <- matrix(nrow = k_par, ncol = n_r) # (k_par,n_r)
+# h_ji_par_matrix <- matrix(nrow = k_par, ncol = n_r) # (k_par,n_r)
+# fold = 1
+# D_train = D[-class_indices[[fold]], ]
+# D_test = D[class_indices[[fold]], ]
+# Y_train = Y[-class_indices[[fold]]]
+# Y_test = Y[class_indices[[fold]]]
+
+# max_reduce = train_max_reduce(D_train,Y_train,B,e,r,k_par)
+# estimate = test_estimate(D_test,Y_test,B,e,r,k_par)
+# h_ji <- matrix(nrow = 0, ncol = n_r) # (k_par,n_r)
+# h_ji_whl <- matrix(nrow = 0, ncol = n_r) # (k_par,n_r)
+# h_ji_par <- matrix(nrow = 0, ncol = n_r) # (k_par,n_r)
+# for (i in 1:k_par){
+#     h_ji <- rbind(h_ji, (max_reduce$max_reduced-estimate$beta_hat[i])^2-estimate$sigma_sq_hat_ji[i])
+#     h_ji_whl <- rbind(h_ji_whl, (max_reduce$max_reduced_whl-estimate$beta_hat_pri_whl[i])^2-estimate$sigma_sq_hat_ji_pri_whl[i])
+#     h_ji_par <- rbind(h_ji_par, (max_reduce$max_reduced_par-estimate$beta_hat_pri_par[i])^2-estimate$sigma_sq_hat_ji_pri_whl[i])
+# }
+
+# h_ji_matrix = h_ji_matrix + h_ji
+# h_ji_whl_matrix = h_ji_whl_matrix + h_ji_whl
+# h_ji_par_matrix = h_ji_par_matrix + h_ji_par
+# save(max_reduce,estimate,h_ji,h_ji_whl,h_ji_par,file = "estimate.RData")
+# print(h_ji_matrix)
+# print(h_ji)
+# r = fun_linear_regression_parallel_cv(D,Y,B,level,e,r,BS_true,k_par,k_fold)
+# print(r)
+
+
+result <-  foreach(mc = 1:100, .combine = cbind,.packages = c("dplyr","MASS","rmutil","epiDisplay","tmvtnorm","matrixcalc","corpcor")) %dopar% {
+    unname(fun_linear_regression_parallel(D,Y,B,level,e,r,BS_true,k_par,k_fold))
+}
+parallel_result = rowMeans(result)
+final_result = c(parallel_result,l_naive,best_subgroup)
+final_result
+
+write.csv(result,file = "result/new_alpha/0.2level_10000e.csv")
+end_time <- Sys.time() 
+run_time <- end_time - star_time  ## 计算程序运行时间
+print("Time for the 100 epoch:")
+print(run_time)

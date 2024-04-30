@@ -306,9 +306,235 @@ fun_linear_regression = function(D,Y,B,level,e,r,BS_true,k_par){
   return(result)
 }
 
-fun_linear_regression_parallel = function(D,Y,B,level,e,r,BS_true,k_par){
+train_max_reduce = function(D,Y,B,e,r,k_par){
+  n = dim(D)[1]
+  k = dim(D)[2]
+  n_total = n
+  Dt = t(D)
+  DtD = Dt%*%D
+  DtD_inv = solve(DtD)
+  DtY = Dt%*%Y
+  #ZtY = DtY[1:k_par]
+  n_r = length(r)
+
+  gamma = max(abs(D))/2
+  zeta = max(abs(Y))/2
+
+  ###################### parameter estimate
+  theta_hat = DtD_inv %*% DtY
+  beta_hat = theta_hat[1:k_par]
+  BS_hat = max(beta_hat)
+  s_max = which.max(beta_hat)
+
+  Q_hat = 1/n * DtD
+
+  Lap_noise = Lap_noise_OLS2(k,gamma,zeta,e,k_par,DtY)
+  scl = Lap_noise$scale
+
+  Q_hat_pri_whl = Q_hat + 1/n * Lap_noise$whl_DtD
+  Q_hat_pri_par = Q_hat + 1/n * Lap_noise$par_DtD
+
+  theta_hat_pri_whl = solve(DtD+Lap_noise$whl_DtD)%*%(DtY+Lap_noise$whl_DtY)
+  theta_hat_pri_par = solve(DtD+Lap_noise$par_DtD)%*%(DtY+Lap_noise$par_DtY)
+
+  beta_hat_pri_whl = theta_hat_pri_whl[1:k_par]
+  beta_hat_pri_par = theta_hat_pri_par[1:k_par]
+
+  BS_hat_pri_whl = max(beta_hat_pri_whl)
+  BS_hat_pri_par = max(beta_hat_pri_par)
+
+  width_term = max((zeta - sum(-gamma * abs(theta_hat))) ** 2,(-zeta - sum(gamma * abs(theta_hat))) ** 2)
+  Delta_sigma_sq = 1/(n-k) * width_term
+  sigma_sq_hat = 1/(n-k) * sum((Y - D%*%theta_hat)^2)
+  sigma_sq_hat_pri = sigma_sq_hat + rlaplace(1,0, Delta_sigma_sq/(e/3))
+  if (sigma_sq_hat_pri<0){
+    sigma_sq_hat_pri = 0.1
+  }
+
+  cov_matrix_whl = sigma_sq_hat_pri * Q_hat_pri_whl
+  cov_matrix_par = sigma_sq_hat_pri * Q_hat_pri_par
+  if (is.positive.definite(cov_matrix_whl) == FALSE){
+    cov_matrix_whl = make.positive.definite(cov_matrix_whl, tol=1e-3)
+  }
+  if (is.positive.definite(cov_matrix_par) == FALSE){
+    cov_matrix_par = make.positive.definite(cov_matrix_par, tol=1e-3)
+  }
+
+  d = matrix(0,n_r,k_par)
+  d_whl = matrix(0,n_r,k_par)
+  d_par = matrix(0,n_r,k_par)
+  n_r = length(r)
+  for (i in 1:n_r){
+    d[i,] = (1-n_total^(r[i]-0.5))*(BS_hat-beta_hat)
+    d_whl[i,] = (1-n_total^(r[i]-0.5))*(BS_hat_pri_whl-beta_hat_pri_whl)
+    d_par[i,] = (1-n_total^(r[i]-0.5))*(BS_hat_pri_par-beta_hat_pri_par)
+  }
+
+  # parametric bootstrap
+  h_b = matrix(0,n_r,B)
+  h_b_whl = matrix(0,n_r,B)
+  h_b_par = matrix(0,n_r,B)
+
+  for (b in 1:B){
+    Y_boot = D%*%theta_hat + rnorm(n,0,sqrt(sigma_sq_hat))
+    Lap_noise_b = Lap_noise_OLS2(k,gamma,zeta,e,k_par,DtY)
+    Z_b_whl = mvrnorm(1,rep(0,k), cov_matrix_whl)
+    Z_b_par = mvrnorm(1,rep(0,k), cov_matrix_par)
+    Q_hat_b_whl= Q_hat_pri_whl + 1 /n * Lap_noise_b$whl_DtD
+    Q_hat_b_par= Q_hat_pri_par + 1 /n * Lap_noise_b$par_DtD
+    
+    theta_boot = DtD_inv%*% Dt %*% Y_boot
+    theta_boot_whl = solve(Q_hat_b_whl)%*%Q_hat_pri_whl%*%theta_hat_pri_whl+solve(Q_hat_b_whl)%*%(1/sqrt(n)*Z_b_whl+1/n * Lap_noise_b$whl_DtY)
+    theta_boot_par = solve(Q_hat_b_par)%*%Q_hat_pri_par%*%theta_hat_pri_par+solve(Q_hat_b_par)%*%(1/sqrt(n)*Z_b_par+1/n * Lap_noise_b$par_DtY)
+    
+    beta_boot = theta_boot[1:k_par]
+    beta_boot_whl = theta_boot_whl[1:k_par]
+    beta_boot_par = theta_boot_par[1:k_par]
+    for (i in 1:n_r){
+      h_b[i,b] = max(beta_boot+d[i,])-BS_hat
+      h_b_whl[i,b] = max(beta_boot_whl+d_whl[i,])-BS_hat_pri_whl
+      h_b_par[i,b] = max(beta_boot_par+d_par[i,])-BS_hat_pri_par
+    }
+  }
+
+  h_b = na.omit(h_b)
+  h_b_whl = na.omit(h_b_whl)
+  h_b_par = na.omit(h_b_par)
+  max_reduced = BS_hat - rowMeans(h_b) # n_r-dim vector
+  max_reduced_whl = BS_hat_pri_whl - rowMeans(h_b_whl)
+  max_reduced_par = BS_hat_pri_par - rowMeans(h_b_par)
+
+  result <- list(max_reduced,max_reduced_whl,max_reduced_par)
+  names(result) <- c("max_reduced","max_reduced_whl","max_reduced_par")
+  return(result)
+}
+
+test_estimate = function(D,Y,B,e,r,k_par){
+  n = dim(D)[1]
+  k = dim(D)[2]
+  n_total = n
+  Dt = t(D)
+  DtD = Dt%*%D
+  DtD_inv = solve(DtD)
+  DtY = Dt%*%Y
+  #ZtY = DtY[1:k_par]
+  n_r = length(r)
+
+  gamma = max(abs(D))/2
+  zeta = max(abs(Y))/2
+
+  ###################### parameter estimate
+  theta_hat = DtD_inv %*% DtY
+  beta_hat = theta_hat[1:k_par]
+  BS_hat = max(beta_hat)
+  s_max = which.max(beta_hat)
+
+  Q_hat = 1/n * DtD
+
+  Lap_noise = Lap_noise_OLS2(k,gamma,zeta,e,k_par,DtY)
+  scl = Lap_noise$scale
+
+  Q_hat_pri_whl = Q_hat + 1/n * Lap_noise$whl_DtD
+  Q_hat_pri_par = Q_hat + 1/n * Lap_noise$par_DtD
+
+  theta_hat_pri_whl = solve(DtD+Lap_noise$whl_DtD)%*%(DtY+Lap_noise$whl_DtY)
+  theta_hat_pri_par = solve(DtD+Lap_noise$par_DtD)%*%(DtY+Lap_noise$par_DtY)
+
+  beta_hat_pri_whl = theta_hat_pri_whl[1:k_par]
+  beta_hat_pri_par = theta_hat_pri_par[1:k_par]
+
+  width_term = max((zeta - sum(-gamma * abs(theta_hat))) ** 2,(-zeta - sum(gamma * abs(theta_hat))) ** 2)
+  Delta_sigma_sq = 1/(n-k) * width_term
+  sigma_sq_hat = 1/(n-k) * sum((Y - D%*%theta_hat)^2)
+  sigma_sq_hat_pri = sigma_sq_hat + rlaplace(1,0, Delta_sigma_sq/(e/3))
+  if (sigma_sq_hat_pri<0){
+    sigma_sq_hat_pri = 0.1
+  }
+
+  cov_matrix_whl = sigma_sq_hat_pri * Q_hat_pri_whl
+  cov_matrix_par = sigma_sq_hat_pri * Q_hat_pri_par
+  if (is.positive.definite(cov_matrix_whl) == FALSE){
+    cov_matrix_whl = make.positive.definite(cov_matrix_whl, tol=1e-3)
+  }
+  if (is.positive.definite(cov_matrix_par) == FALSE){
+    cov_matrix_par = make.positive.definite(cov_matrix_par, tol=1e-3)
+  }
+
+
+  sigma_sq_hat_ji = 0
+  sigma_sq_hat_ji_pri_whl = 0
+  sigma_sq_hat_ji_pri_par = 0
+  for (i in 1:k_par){
+    sigma_sq_hat_ji <- c(sigma_sq_hat_ji, sigma_sq_hat * DtD_inv[i,i])
+    sigma_sq_hat_ji_pri_whl <- c(sigma_sq_hat_ji_pri_whl, sigma_sq_hat_pri * abs(solve(DtD+Lap_noise$whl_DtD)[i,i]))
+    sigma_sq_hat_ji_pri_par <- c(sigma_sq_hat_ji_pri_par, sigma_sq_hat_pri * abs(solve(DtD+Lap_noise$par_DtD)[i,i]))
+  }
+
+  result <- list(beta_hat,beta_hat_pri_whl,beta_hat_pri_par,sigma_sq_hat_ji,sigma_sq_hat_ji_pri_whl,sigma_sq_hat_ji_pri_par)
+  names(result) <- c("beta_hat","beta_hat_pri_whl","beta_hat_pri_par","sigma_sq_hat_ji","sigma_sq_hat_ji_pri_whl","sigma_sq_hat_ji_pri_par")
+  return(result)
+}
+
+index_sample = function(n,k){
+  # k is the number of k_fold
+  index_sequence <- 1:n
+  shuffled_sequence <- sample(index_sequence)
+  indices_per_class <- floor(n / k)
+  class_indices <- vector("list", k)
+  for (i in 1:(k-1)) {
+    start <- (i - 1) * indices_per_class + 1
+    end <- i * indices_per_class
+    class_indices[[i]] <- sort(shuffled_sequence[start:end])
+  }
+  remaining_indices <- shuffled_sequence[((k-1) * indices_per_class + 1):n]
+  for (i in 1:length(remaining_indices)) {
+    class_indices[[k]] <- c(class_indices[[k]], remaining_indices[i])
+  }
+  return(class_indices)
+}
+
+fun_linear_regression_parallel_cv = function(D,Y,B,level,e,r,BS_true,k_par,k_fold){
+  n = dim(D)[1]
+  class_indices = index_sample(n,k_fold)
+  h_ji_matrix <- matrix(0,nrow = k_par, ncol = n_r) # (k_par,n_r)
+  h_ji_whl_matrix <- matrix(0,nrow = k_par, ncol = n_r) # (k_par,n_r)
+  h_ji_par_matrix <- matrix(0,nrow = k_par, ncol = n_r) # (k_par,n_r)
+
+  for (fold in 1:k_fold) {
+    D_train = D[-class_indices[[fold]], ]
+    D_test = D[class_indices[[fold]], ]
+    Y_train = Y[-class_indices[[fold]]]
+    Y_test = Y[class_indices[[fold]]]
+
+    max_reduce = train_max_reduce(D_train,Y_train,B,e,r,k_par)
+    estimate = test_estimate(D_test,Y_test,B,e,r,k_par)
+
+    h_ji <- matrix(nrow = 0, ncol = n_r) # (k_par,n_r)
+    h_ji_whl <- matrix(nrow = 0, ncol = n_r) # (k_par,n_r)
+    h_ji_par <- matrix(nrow = 0, ncol = n_r) # (k_par,n_r)
+    for (i in 1:k_par){
+      h_ji <- rbind(h_ji, (max_reduce$max_reduced-estimate$beta_hat[i])^2-estimate$sigma_sq_hat_ji[i])
+      h_ji_whl <- rbind(h_ji_whl, (max_reduce$max_reduced_whl-estimate$beta_hat_pri_whl[i])^2-estimate$sigma_sq_hat_ji_pri_whl[i])
+      h_ji_par <- rbind(h_ji_par, (max_reduce$max_reduced_par-estimate$beta_hat_pri_par[i])^2-estimate$sigma_sq_hat_ji_pri_whl[i])
+    }
+    h_ji_matrix = h_ji_matrix + h_ji
+    h_ji_whl_matrix = h_ji_whl_matrix + h_ji_whl
+    h_ji_par_matrix = h_ji_par_matrix + h_ji_par
+  }
+  r_cv = r[which.min(apply(h_ji_matrix, 2, min))]
+  r_cv_whl =  r[which.min(apply(h_ji_whl_matrix, 2, min))]
+  r_cv_par = r[which.min(apply(h_ji_par_matrix, 2, min))]
+
+  result<- c(r_cv,r_cv_whl,r_cv_par)
+  # result <- list(r_cv,r_cv_whl,r_cv_par)
+  # names(result) <- c("r_cv","r_cv_whl","r_cv_par")
+  return(result)
+}
+
+fun_linear_regression_parallel = function(D,Y,B,level,e,r,BS_true,k_par,k_fold){
   # This algorithm is modified for parallel computation with modification about the return)
-  ### k_par is the dim of vector of interest
+  r = fun_linear_regression_parallel_cv(D,Y,B,level,e,r,BS_true,k_par,k_fold)
+  # use the 1st, 2nd, 3rd result for non-pri, par_pri, whl_pri
   n = dim(D)[1]
   k = dim(D)[2]
   n_total = n
