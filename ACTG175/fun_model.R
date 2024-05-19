@@ -533,7 +533,7 @@ fun_linear_regression_parallel_cv = function(D,Y,B,level,e,r,BS_true,k_par,k_fol
 
 fun_linear_regression_parallel = function(D,Y,B,level,e,r,BS_true,k_par,k_fold){
   # This algorithm is modified for parallel computation with modification about the return)
-  r = fun_linear_regression_parallel_cv(D,Y,B,level,e,r,BS_true,k_par,k_fold)
+  # r = fun_linear_regression_parallel_cv(D,Y,B,level,e,r,BS_true,k_par,k_fold)
   # use the 1st, 2nd, 3rd result for non-pri, par_pri, whl_pri
   n = dim(D)[1]
   k = dim(D)[2]
@@ -547,10 +547,16 @@ fun_linear_regression_parallel = function(D,Y,B,level,e,r,BS_true,k_par,k_fold){
   
   gamma = max(abs(D))/2
   zeta = max(abs(Y))/2
+  # print(paste("gamma is:", gamma))
+  # print(paste("zeta is:", zeta))
   
   ###################### parameter estimate
   theta_hat = DtD_inv %*% DtY
   beta_hat = theta_hat[1:k_par]
+  # print("beta_hat is:")
+  # print(beta_hat)
+
+
   BS_hat = max(beta_hat)
   s_max = which.max(beta_hat)
   
@@ -563,10 +569,27 @@ fun_linear_regression_parallel = function(D,Y,B,level,e,r,BS_true,k_par,k_fold){
   Q_hat_pri_par = Q_hat + 1/n * Lap_noise$par_DtD
   
   theta_hat_pri_whl = solve(DtD+Lap_noise$whl_DtD)%*%(DtY+Lap_noise$whl_DtY)
+  # print("DtD is :") 
+  # print(DtD)
+  # print("Lap_noise$whl_DtD is:") 
+  # print(Lap_noise$whl_DtD)
+  # print("DtY is:")  
+  # print(DtY)
+  # print("Lap_noise$whl_DtY is:") 
+  # print(Lap_noise$whl_DtY)
   theta_hat_pri_par = solve(DtD+Lap_noise$par_DtD)%*%(DtY+Lap_noise$par_DtY)
+  # print("Lap_noise$par_DtD is:") 
+  # print(Lap_noise$par_DtD)
+  # print("Lap_noise$par_DtD is:") 
+  # print(Lap_noise$par_DtD)
   
   beta_hat_pri_whl = theta_hat_pri_whl[1:k_par]
   beta_hat_pri_par = theta_hat_pri_par[1:k_par]
+
+  # print("beta_hat_pri_whl is:")
+  # print(beta_hat_pri_whl)
+  # print("beta_hat_pri_par is:")
+  # print( beta_hat_pri_par)
   
   BS_hat_pri_whl = max(beta_hat_pri_whl)
   BS_hat_pri_par = max(beta_hat_pri_par)
@@ -578,6 +601,8 @@ fun_linear_regression_parallel = function(D,Y,B,level,e,r,BS_true,k_par,k_fold){
   if (sigma_sq_hat_pri<0){
     sigma_sq_hat_pri = 0.1
   }
+
+  # print(paste("sigma_sq_hat_pri is:", sigma_sq_hat_pri))
 
   
   cov_matrix_whl = sigma_sq_hat_pri * Q_hat_pri_whl
@@ -593,6 +618,7 @@ fun_linear_regression_parallel = function(D,Y,B,level,e,r,BS_true,k_par,k_fold){
   lb_naive_whl = beta_hat_pri_whl[s_max] - qt(1-level,df = n_total-1)*sqrt(1.0 * sigma_sq_hat_pri * abs(solve(DtD+Lap_noise$whl_DtD)[s_max,s_max]))
   lb_naive_par = beta_hat_pri_par[s_max] - qt(1-level,df = n_total-1)*sqrt(1.0 * sigma_sq_hat_pri * abs(solve(DtD+Lap_noise$par_DtD)[s_max,s_max]))
 
+  # cat("BS_hat:", BS_hat, "\n")
   d = matrix(0,n_r,k_par)
   d_whl = matrix(0,n_r,k_par)
   d_par = matrix(0,n_r,k_par)
@@ -602,6 +628,9 @@ fun_linear_regression_parallel = function(D,Y,B,level,e,r,BS_true,k_par,k_fold){
     d_whl[i,] = (1-n_total^(r[i]-0.5))*(BS_hat_pri_whl-beta_hat_pri_whl)
     d_par[i,] = (1-n_total^(r[i]-0.5))*(BS_hat_pri_par-beta_hat_pri_par)
   }
+  # cat("d:", d, "\n")
+  # cat("d_whl:", d_whl, "\n")
+  # cat("d_par:", d_par, "\n")
   
   # parametric bootstrap
   T_b = matrix(0,n_r,B)

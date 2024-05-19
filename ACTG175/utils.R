@@ -17,6 +17,23 @@ Lap_noise_OLS2 = function(k,gamma,zeta,e,k_par,DtY){
   
   w_p = w
   V_p = V
+  # if (k_par != k){
+  #   e = e/k_par *k    # budget saved
+  #   for (i in 1:k){
+  #     for (j in 1:i){
+  #       V[i,j] = rlaplace(1,0,sensi_DtD/(e/3))
+  #       V[j,i] = V[i,j]
+  #     }
+  #   }
+
+
+    # for (i in (k_par +1) : k){
+    #   w_p[i] = 0
+    #   for (j in (k_par+1) :k){
+    #     V_p[i,j] = 0
+    #   }
+    # }
+
   if (k_par != k){
     for (i in (k_par +1) : k){
       w_p[i] = 0
@@ -25,6 +42,7 @@ Lap_noise_OLS2 = function(k,gamma,zeta,e,k_par,DtY){
       }
     }
   }
+  # }
   
   Lap_noise = list(w,V,w_p,V_p,scl)
   names(Lap_noise) = c("whl_DtY","whl_DtD","par_DtY","par_DtD","scale") # whl for whole
