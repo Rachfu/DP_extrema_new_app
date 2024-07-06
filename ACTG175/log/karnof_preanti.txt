@@ -1,0 +1,8 @@
+[1] "Start time is:"
+[1] "2024-05-19 14:43:17 HKT"
+privacy budget: 50000 
+karnof setline: median 100 
+preanti setline: median 142 
+[1] 23
+[1] 19
+[1] 18

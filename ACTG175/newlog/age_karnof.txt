@@ -1,0 +1,139 @@
+[1] "Start time is:"
+[1] "2024-05-20 15:07:30 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 23
+[1] 19
+[1] "Start time is:"
+[1] "2024-05-20 15:07:49 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 22
+[1] 18
+remove race 
+[1] "Start time is:"
+[1] "2024-05-20 15:08:06 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 22
+[1] 18
+remove hemo 
+[1] "Start time is:"
+[1] "2024-05-20 15:08:19 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 22
+[1] 18
+remove homo 
+[1] "Start time is:"
+[1] "2024-05-20 15:08:30 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 22
+[1] 18
+remove drugs 
+[1] "Start time is:"
+[1] "2024-05-20 15:08:44 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 22
+[1] 18
+remove karnof 
+[1] "Start time is:"
+[1] "2024-05-20 15:08:56 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 22
+[1] 18
+remove oprior 
+[1] "Start time is:"
+[1] "2024-05-20 15:09:04 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 22
+[1] 18
+remove G1 
+[1] "Start time is:"
+[1] "2024-05-20 15:09:13 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 22
+[1] 18
+remove G2 
+[1] "Start time is:"
+[1] "2024-05-20 15:09:22 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 22
+[1] 19
+remove G3 
+[1] "Start time is:"
+[1] "2024-05-20 15:09:49 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 21
+[1] 19
+remove G3, G4 
+[1] "Start time is:"
+[1] "2024-05-20 15:10:24 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 20
+[1] 18
+remove G3, G4, z30 
+[1] "Start time is:"
+[1] "2024-05-20 15:10:36 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 20
+[1] 18
+remove G3, G4, preanti 
+[1] "Start time is:"
+[1] "2024-05-20 15:10:45 HKT"
+correction term: -Inf 0.03333333 0.06666667 0.1 0.2 0.5 
+confident level: 0.1 
+privacy budget: 5000 
+X$karnof[i] == 1 
+X$age[i] > median(X$age) 34 
+[1] 20
+[1] 18
+remove G3, G4, gender 
